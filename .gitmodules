@@ -1,0 +1,6 @@
+[submodule "project-manas"]
+	path = project-manas
+	url = git@github.com:aniagra119/exocortex.git
+[submodule "developer-palette"]
+	path = developer-palette
+	url = git@github.com:aniagra119/developer-palette.git

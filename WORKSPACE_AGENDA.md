@@ -4,28 +4,24 @@
 
 This workspace is the **root of a multi-repo ecosystem** — a personal AI Operating System built on data sovereignty, conversational interfaces, and clean architecture principles.
 
-All repositories in this ecosystem are independent GitHub projects, linked here via Git Submodules. This document is the single source of truth for how they relate to each other.
+All repositories are independent GitHub projects, linked here via Git Submodules. For the public-facing portfolio overview, see [start-here](https://github.com/aniagra119/start-here).
 
 ---
 
 ## Repository Map
 
 ```
-GitHub-Workspace/                       ← You are here (Portfolio Navigator)
-├── project-manas/                      → github.com/aniagra119/exocortex
-│   The active AI OS. Translates natural language from Discord into structured
-│   data in user-owned Google Sheets. Built on FastAPI + LangGraph + Redis.
+GitHub-Workspace/                       ← You are here (local ecosystem root)
 │
-├── developer-palette/                  → github.com/aniagra119/developer-palette
-│   A Git-native scaffolding tool. Maintains base templates and feature
-│   integrations (discord, langgraph, fastapi) on orthogonal branches.
-│   Projects are built by merging branches — no scaffolding scripts needed.
+├── project-manas/          → github.com/aniagra119/manas
+│   The active AI OS. Natural language → structured data in user-owned Google Sheets.
+│   FastAPI + LangGraph 5-Node ReAct + Redis + Docker.
 │
-└── [Planned] manas-storage/            → github.com/aniagra119/manas-storage
-    A standalone, async Python library implementing the DatabaseClient protocol
-    over Google Sheets and SQLite. Zero dependency on LangGraph or Discord.
-    Designed to be pip-installable and used independently.
+└── developer-palette/      → github.com/aniagra119/developer-palette
+    Git-native scaffolding tool. Feature branches merged via git, not scripts.
 ```
+
+**Public portfolio entry point:** [github.com/aniagra119/start-here](https://github.com/aniagra119/start-here)
 
 ---
 
@@ -33,75 +29,67 @@ GitHub-Workspace/                       ← You are here (Portfolio Navigator)
 
 ```mermaid
 graph TD
-    WS["GitHub-Workspace\n(Portfolio Navigator)"]
+    SH["start-here\n(Portfolio entry point)"]
+    WS["workspace\n(Local ecosystem root)"]
 
-    WS -->|submodule| PM["project-manas\ngithub.com/aniagra119/exocortex"]
-    WS -->|submodule| DP["developer-palette\ngithub.com/aniagra119/developer-palette"]
+    SH -->|links to| MN["manas\ngithub.com/aniagra119/manas"]
+    SH -->|links to| DP["developer-palette\ngithub.com/aniagra119/developer-palette"]
+
+    WS -->|submodule| MN
+    WS -->|submodule| DP
+
     WS -.->|planned submodule| MS["manas-storage\n(future standalone library)"]
+    MN -.->|will extract| MS
+    DP -.->|will import| MS
 
-    PM -->|uv path dep| MS
-    DP -->|uv path dep| MS
-
-    PM -->|scaffolded from| DP
-    DP -->|branch merge| PM
+    DP -->|git merge template| MN
 ```
 
 ---
 
 ## How the Repos Relate
 
-### `developer-palette` → `project-manas`
-`developer-palette` is the **compiler** that generated the initial scaffold of `project-manas`. It maintains orthogonal Git branches for each technology layer:
+### `developer-palette` → `manas`
+Developer Palette maintains orthogonal Git branches for each technology layer:
 - `python/base` — FastAPI skeleton + uv config
 - `python/feature-discord` — Ed25519 webhook verification, Component UI helpers
 - `python/feature-langgraph` — LangGraph StateGraph wiring patterns
 - `python/feature-redis` — Redis queue and connection pool setup
 
-When Project Manas needed a new feature, the process was: `git merge developer-palette/python/feature-X`. Git's diff algorithm handles the injection cleanly — no custom scripts, no version drift.
+Manas was scaffolded by merging these branches. Future upgrades follow the same pattern — no custom scripts.
 
-### `manas-storage` → both apps
-`manas-storage` is a **pure Python library** containing:
-- `DatabaseClient` Protocol (abstract interface)
-- `GoogleSheetsClient` implementation
-- `SQLiteClient` fallback implementation
-
-Both `project-manas` and `developer-palette` import this library via a `uv` local path reference during development:
-```toml
-# In either app's pyproject.toml
-dependencies = [
-    "manas-storage @ file:///Users/anirudhagrawal/Desktop/GitHub-Workspace/manas-storage"
-]
-```
-When deployed or published, the path is replaced with the Git URL. This guarantees **zero Protocol drift** between the live bot and the dev testing tool.
+### `manas-storage` → both apps *(planned)*
+A pure Python library containing the `DatabaseClient` Protocol, `GoogleSheetsClient`, and `SQLiteClient`. Will be extracted into its own repo when `developer-palette` also needs to import it. Until then, it lives inside `manas/libs/`.
 
 ---
 
-## Technology Stack (Shared Across Ecosystem)
+## Documentation
 
-| Layer | Technology | Purpose |
+| Document | Where it lives | What it covers |
 |:---|:---|:---|
-| Language | Python 3.12+ | Core runtime |
-| Package Manager | `uv` | Hyper-fast dependency resolution |
-| Web Framework | FastAPI | Async HTTP, webhook handling |
-| AI Orchestration | LangGraph | 5-Node ReAct state machine |
-| LLM | Gemini / OpenAI | NLP, structured extraction |
-| Transport | Discord API | Conversational interface |
-| Hot Cache | Redis (Upstash) | Queue, idempotency locks, bootstrap cache |
-| Primary Database | Google Sheets | User-owned data sovereignty |
-| Fallback Database | SQLite | Local dev / zero-config mode |
-| Container | Docker + Compose | Self-hosted persistent worker |
-| Versioning | SemVer 2.0 | All Protocol and node contracts |
+| Coding execution plan | [`docs/CODING_PLAN.md`](docs/CODING_PLAN.md) | Branch strategy, phase order, library extraction rules |
+| Full architecture | [`manas/docs/ARCHITECTURE.md`](../project-manas/docs/ARCHITECTURE.md) | Every system design decision in one place |
+| PRD | [`manas/docs/PRD.md`](../project-manas/docs/PRD.md) | User stories and product philosophy |
+
+**Philosophy:** Per-project decisions live inside each project's `docs/`. This workspace-level `docs/` only contains cross-repo concerns (coding plan, ecosystem architecture).
 
 ---
 
-## Versioning Strategy (SemVer Across Repos)
+## Technology Stack
 
-All repos in this ecosystem follow **Semantic Versioning 2.0**:
-- `MAJOR` bump → Breaking change to a cross-repo Protocol (e.g. `DatabaseClient` signature change)
-- `MINOR` bump → New capability added backwards-compatibly (e.g. new LangGraph node)
-- `PATCH` bump → Bug fix, doc update, config change
-
-When `manas-storage` releases a MAJOR version, both `project-manas` and `developer-palette` must pin to that version and migrate explicitly. No silent breakage.
+| Layer | Technology |
+|:---|:---|
+| Language | Python 3.12+ |
+| Package Manager | `uv` |
+| Web Framework | FastAPI |
+| AI Orchestration | LangGraph |
+| LLM | Gemini / OpenAI |
+| Transport | Discord API |
+| Hot Cache | Redis |
+| Primary Database | Google Sheets |
+| Fallback Database | SQLite |
+| Container | Docker Compose |
+| Versioning | SemVer 2.0 |
 
 ---
 
@@ -109,35 +97,12 @@ When `manas-storage` releases a MAJOR version, both `project-manas` and `develop
 
 ```bash
 # Clone the full workspace including all submodules
-git clone --recurse-submodules git@github.com:aniagra119/GitHub-Workspace.git
+git clone --recurse-submodules git@github.com:aniagra119/workspace.git
 
 # Update all submodules to their latest tracked commit
 git submodule update --remote --merge
 
-# Work inside a specific submodule (treat it as a normal repo)
+# Work inside manas (treated as a normal independent repo)
 cd project-manas
-git checkout main
-git pull
+git checkout main && git pull
 ```
-
----
-
-## Workspace-Level Documentation
-
-The `/docs` folder at this level contains **macro-level decisions** that span both repositories:
-
-| Document | Description |
-|:---|:---|
-| [`docs/adr/`](docs/adr/) | Architecture Decision Records — a log of every major technical decision made across this ecosystem |
-| [`docs/architecture/`](docs/architecture/) | High-level system maps showing how all repos and external services connect |
-
-> **Note:** Per-project implementation details (node contracts, protocol definitions, data schemas) live inside each repo's own `docs/` folder. The workspace-level docs only cover decisions that affect multiple repos simultaneously.
-
----
-
-## Portfolio Quick Links
-
-| Project | GitHub | Description |
-|:---|:---|:---|
-| Project Manas | [exocortex](https://github.com/aniagra119/exocortex) | The AI OS |
-| Developer Palette | [developer-palette](https://github.com/aniagra119/developer-palette) | Git-native scaffolding tool |
